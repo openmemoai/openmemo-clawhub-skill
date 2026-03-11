@@ -1,16 +1,89 @@
-# OpenMemo Memory
+# OpenMemo - Persistent Memory for OpenClaw Agents
 
-Persistent memory system for OpenClaw agents.
+Stop agents from repeating tasks. Give your AI long-term memory.
 
-## Description
+## The Problem
 
-OpenMemo adds persistent memory to OpenClaw agents. Instead of relying only on chat history or large memory files, OpenMemo allows agents to remember tasks, decisions, and workflows.
+OpenClaw provides a basic memory system, but in real-world usage agents still:
 
-Your agent can:
-- Remember completed tasks
-- Reuse successful workflows
-- Avoid duplicate execution
-- Accumulate long-term operational knowledge
+- **Repeat the same tasks** — the agent deploys successfully, but runs the entire workflow again next time because it never recorded the result
+- **Store memory as large documents** — chat history and MEMORY.md files help retrieve text, but agents also need to remember tasks they completed, decisions they made, and workflows that succeeded
+
+## What OpenMemo Adds
+
+OpenMemo introduces a **structured memory layer** designed for agent workflows. Instead of storing raw conversation text, OpenMemo records **experience events**.
+
+```
+Backend deployed using Docker Compose
+Scene: deployment
+Type: task_execution
+```
+
+Agents recall **actions and results**, not just text.
+
+## Comparison
+
+| Feature | Typical Long-Term Memory | OpenMemo Memory |
+|---|---|---|
+| Memory type | Document memory | Experience memory |
+| Storage | Notes and logs | Structured events |
+| Retrieval | Vector search | Scene + task recall |
+| Task deduplication | No | Yes |
+| Workflow reuse | No | Yes |
+
+## Core Capabilities
+
+### Persistent Memory
+
+OpenMemo records structured experience from agent workflows: tasks completed, decisions made, workflows validated. These memories persist across sessions and can be recalled when similar tasks appear. Over time the agent accumulates **long-term operational knowledge**.
+
+### Task Deduplication
+
+OpenMemo introduces **task fingerprinting**. Before executing a task, the agent checks memory. If the task already succeeded, the agent can reuse the result, skip execution, or continue from the previous step. This prevents duplicate execution, wasted tokens, and repeated workflows.
+
+### Scene-Aware Memory
+
+OpenMemo detects the working context: `coding`, `research`, `debugging`, `deployment`. Only the most relevant memories are retrieved for the current task. This keeps context focused and efficient.
+
+### Memory Inspector
+
+A built-in dashboard lets you see what the agent remembers, memory ranking and recall results, and system health. The memory system becomes **transparent** instead of a black box.
+
+### Local-First Architecture
+
+All memory operations happen locally. No external dependencies, no cloud required, full privacy, lower latency.
+
+```
+OpenClaw Agent
+      |
+      v
+OpenMemo Skill
+      |
+      v
+OpenMemo Adapter (local)
+      |
+      v
+OpenMemo Memory Engine
+```
+
+## Example
+
+**Without OpenMemo:**
+
+```
+> deploy backend
+  → agent rebuilds everything again
+```
+
+**With OpenMemo:**
+
+```
+> deploy backend
+  → agent detects previous deployment
+  → reuses workflow
+```
+
+The agent stops behaving like a script and starts behaving like a **system**.
 
 ## Tools
 
@@ -61,13 +134,12 @@ openmemo serve
 
 Restart your agent. The Skill will automatically detect the adapter and activate persistent memory.
 
-## Features
+## Best Use Cases
 
-- Persistent agent memory across sessions
-- Task deduplication — stop repeating work
-- Scene-aware recall (coding, debug, research, deployment)
-- Memory inspector dashboard
-- Local-first architecture — your data stays local
+- Coding agents
+- DevOps automation
+- Research agents
+- Multi-step AI workflows
 
 ## Links
 
