@@ -24,14 +24,22 @@ class TestConfig:
         assert cfg.request_timeout == 10
         assert cfg.auto_detect is True
 
-    def test_custom_endpoint(self):
-        cfg = SkillConfig(endpoint="http://example.com:9999")
+    def test_custom_localhost_endpoint(self):
+        cfg = SkillConfig(endpoint="http://localhost:9999")
+        assert cfg.endpoint == "http://localhost:9999"
+
+    def test_remote_endpoint_rejected(self):
+        with pytest.raises(ValueError, match="not localhost"):
+            SkillConfig(endpoint="http://example.com:9999")
+
+    def test_remote_endpoint_allowed(self):
+        cfg = SkillConfig(endpoint="http://example.com:9999", allow_remote=True)
         assert cfg.endpoint == "http://example.com:9999"
 
     def test_env_variable(self):
-        with patch.dict("os.environ", {"OPENMEMO_ENDPOINT": "http://custom:1234"}):
+        with patch.dict("os.environ", {"OPENMEMO_ENDPOINT": "http://localhost:1234"}):
             cfg = SkillConfig()
-            assert cfg.endpoint == "http://custom:1234"
+            assert cfg.endpoint == "http://localhost:1234"
 
 
 class TestDetector:
@@ -68,6 +76,32 @@ class TestDetector:
             mock_resp.status_code = 200
             mock_resp.json.return_value = {"status": "error"}
             mock_get.return_value = mock_resp
+
+            detector = AdapterDetector()
+            result = detector.detect()
+            assert not result.available
+
+    def test_detect_installed_but_not_running(self):
+        with patch("openmemo_clawhub_skill.detector.requests.get") as mock_get, \
+             patch.object(AdapterDetector, "_check_package_installed", return_value=True):
+            mock_get.side_effect = ConnectionError("refused")
+            detector = AdapterDetector()
+            result = detector.detect()
+            assert not result.available
+            assert not result.server_running
+            assert result.adapter_installed
+
+    def test_detect_4xx_fails(self):
+        with patch("openmemo_clawhub_skill.detector.requests.get") as mock_get, \
+             patch("openmemo_clawhub_skill.detector.requests.post") as mock_post:
+            mock_resp = MagicMock()
+            mock_resp.status_code = 200
+            mock_resp.json.return_value = {"status": "ok"}
+            mock_get.return_value = mock_resp
+
+            mock_post_resp = MagicMock()
+            mock_post_resp.status_code = 404
+            mock_post.return_value = mock_post_resp
 
             detector = AdapterDetector()
             result = detector.detect()
