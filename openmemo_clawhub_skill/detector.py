@@ -47,6 +47,8 @@ class AdapterDetector:
         endpoint = self._config.endpoint
         timeout = self._config.health_timeout
 
+        result.adapter_installed = self._check_package_installed()
+
         health_ok = self._check_health(endpoint, timeout, result)
         if not health_ok:
             return result
@@ -60,6 +62,14 @@ class AdapterDetector:
         result.available = all_ok
         result.adapter_installed = True
         return result
+
+    @staticmethod
+    def _check_package_installed() -> bool:
+        try:
+            import openmemo  # noqa: F401
+            return True
+        except ImportError:
+            return False
 
     def _check_health(self, endpoint: str, timeout: int,
                       result: DetectionResult) -> bool:
@@ -91,7 +101,7 @@ class AdapterDetector:
                 json={"query": "_health_check", "limit": 1},
                 timeout=timeout,
             )
-            if resp.status_code < 500:
+            if 200 <= resp.status_code < 300:
                 result.checks.append(("recall", True, "/memory/recall OK"))
                 return True
             else:
@@ -109,7 +119,7 @@ class AdapterDetector:
                 json={"query": "_task_health_check", "limit": 1},
                 timeout=timeout,
             )
-            if resp.status_code < 500:
+            if 200 <= resp.status_code < 300:
                 result.checks.append(("task_check", True, "/memory/search OK"))
                 return True
             else:
