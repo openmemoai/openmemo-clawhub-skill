@@ -1,109 +1,258 @@
-# OpenMemo — Persistent Memory for OpenClaw Agents
+# OpenMemo Memory – Persistent Memory for OpenClaw Agents
 
-> Stop agents from repeating tasks. Give your AI long-term memory.
+OpenMemo adds **persistent memory** to OpenClaw agents.
 
-A ClawHub Skill that connects OpenClaw agents to [OpenMemo](https://github.com/openmemoai/openmemo), the open-source Memory Infrastructure for AI Agents.
+Instead of relying only on chat history or large memory files, OpenMemo allows agents to remember tasks, decisions, and workflows.
 
-## Features
+Your agent can now:
 
-- **Persistent agent memory** — memories survive across sessions
-- **Task deduplication** — agents check before re-executing completed work
-- **Scene-aware recall** — context-specific memory retrieval (coding, debug, research)
-- **Memory inspector** — built-in dashboard to monitor memory behavior
-- **Local-first** — your data stays on your machine
+- Remember completed tasks
+- Reuse successful workflows
+- Avoid duplicate execution
+- Accumulate long-term operational knowledge
 
-## Architecture
+---
+
+## The Problem
+
+OpenClaw already provides a basic memory system. However, in real-world usage many developers encounter the same issues.
+
+### Agents repeat the same tasks
+
+Example:
 
 ```
-User
- │
- ▼
+> deploy backend
+```
+
+The agent deploys successfully. Later the same request appears again:
+
+```
+> deploy backend
+```
+
+The agent runs the entire workflow again because the system never recorded:
+
+> deployment already completed
+
+### Memory becomes large documents
+
+Many agent memory systems rely on storing:
+
+- Chat history
+- Large `MEMORY.md` files
+- Vectorized conversation logs
+
+This helps retrieve text, but agents also need to remember:
+
+- Tasks they completed
+- Decisions they made
+- Workflows that succeeded
+
+---
+
+## What OpenMemo Adds
+
+OpenMemo introduces a **structured memory layer** designed for agent workflows.
+
+Instead of storing raw conversation text, OpenMemo records **experience events**.
+
+Example:
+
+```
+Backend deployed using Docker Compose
+Scene: deployment
+Type: task_execution
+```
+
+This allows agents to recall **actions and results**, not just text.
+
+### Persistent Memory
+
+OpenMemo records structured experience from agent workflows:
+
+- Task completed
+- Decision made
+- Workflow validated
+
+These memories can be recalled when similar tasks appear. Over time the agent accumulates **long-term operational knowledge**.
+
+### Task Deduplication
+
+OpenMemo introduces **task fingerprinting**.
+
+Example:
+
+```
+deployment|backend|docker-compose
+```
+
+Before executing a task, the agent checks memory. If the task already succeeded, the agent can:
+
+- Reuse the result
+- Skip execution
+- Continue from the previous step
+
+This prevents:
+
+- Duplicate execution
+- Wasted tokens
+- Repeated workflows
+
+### Scene-Aware Memory
+
+OpenMemo detects the working context of the agent.
+
+Examples of scenes:
+
+- `coding`
+- `research`
+- `debugging`
+- `deployment`
+
+Only the most relevant memories are retrieved for the current task. This keeps context focused and efficient.
+
+### Memory Inspector
+
+OpenMemo includes a **Memory Inspector** dashboard. You can see:
+
+- What the agent remembers
+- Memory ranking and recall results
+- System health and statistics
+
+This makes the memory system **transparent** instead of a black box.
+
+---
+
+## Local-First Architecture
+
+OpenMemo runs locally by default.
+
+```
 OpenClaw Agent
- │
- ▼
-OpenMemo Skill (ClawHub)
- │
- ├─ Bootstrap Mode        (adapter not detected)
- │     → installation guide
- │     → setup wizard
- │
- └─ Memory Mode           (adapter detected)
-       → recall_memory
-       → write_memory
-       → check_task_memory
-       │
-       ▼
- OpenMemo Adapter (local)
-       │
-       ▼
- OpenMemo Memory Engine
+      |
+      v
+OpenMemo Skill
+      |
+      v
+OpenMemo Adapter (local)
+      |
+      v
+OpenMemo Memory Engine
 ```
 
-## Quick Start
+All memory operations happen locally.
 
-### 1. Install this skill on ClawHub
+Benefits:
 
-### 2. Install the adapter locally
+- Privacy
+- Lower latency
+- No external dependencies
+
+---
+
+## Document Memory vs Operational Memory
+
+Most agent memory systems focus on **document retrieval**:
+
+- Chat logs
+- Memory files
+- Vector databases
+
+This works well for retrieving information. But agents also need to remember **work they have already done**.
+
+OpenMemo focuses on **operational memory**.
+
+Example:
+
+```
+Backend deployed using Docker Compose
+Type: task_execution
+Scene: deployment
+```
+
+Instead of retrieving paragraphs, the agent recalls **actions and results**.
+
+---
+
+## Example
+
+**Without OpenMemo:**
+
+```
+> deploy backend
+→ agent rebuilds everything again
+```
+
+**With OpenMemo:**
+
+```
+> deploy backend
+→ agent detects previous deployment
+→ reuses workflow
+```
+
+The agent stops behaving like a script and starts behaving like a **system**.
+
+---
+
+## Comparison
+
+| Feature | Typical Long-Term Memory | OpenMemo Memory |
+|---|---|---|
+| Memory type | Document memory | Experience memory |
+| Storage | Notes and logs | Structured events |
+| Retrieval | Vector search | Scene + task recall |
+| Task deduplication | No | Yes |
+| Workflow reuse | No | Yes |
+
+---
+
+## Installation
+
+Install this Skill in ClawHub. Then install the OpenMemo adapter locally:
 
 ```bash
 pip install openmemo openmemo-openclaw
-```
-
-### 3. Start the memory server
-
-```bash
 openmemo serve
 ```
 
-### 4. Restart your agent
+Restart your agent.
 
-The skill automatically detects the running adapter and enters Memory Mode.
+The OpenMemo Skill will automatically connect to the adapter and activate persistent memory.
 
-## Tools
+---
 
-| Tool | Description |
-|------|-------------|
-| `recall_memory` | Retrieve relevant past experience |
-| `write_memory` | Store structured memory events |
-| `check_task_memory` | Check if a task was already completed |
+## Best Use Cases
 
-## Memory Rules
+OpenMemo works best for agents executing repeated workflows:
 
-The skill injects operating rules into the agent's prompt:
+- Coding agents
+- DevOps automation
+- Research agents
+- Multi-step AI workflows
 
-1. **Before any task** → call `check_task_memory` to avoid duplication
-2. **Before decisions** → call `recall_memory` for past experience
-3. **After important tasks** → call `write_memory` to save experience
+---
 
-## Python Usage
+## Project
 
-```python
-from openmemo_clawhub_skill import OpenMemoSkill
+GitHub: [openmemoai/openmemo](https://github.com/openmemoai/openmemo)
 
-skill = OpenMemoSkill()
-result = skill.run()
+---
 
-if result["mode"] == "memory":
-    # Memory tools are available
-    recall = skill.recall("database optimization patterns")
-    skill.write("PostgreSQL: use EXPLAIN ANALYZE before optimizing", scene="coding")
-    check = skill.check_task("deploy staging environment")
-else:
-    # Show setup instructions
-    print(result["message"])
-```
+## Vision
 
-## Configuration
+Future AI systems will not rely only on short-term context. They will accumulate experience over time.
 
-| Env Variable | Default | Description |
-|---|---|---|
-| `OPENMEMO_ENDPOINT` | `http://localhost:8765` | OpenMemo adapter endpoint |
+OpenMemo is building the **memory infrastructure for AI agents**.
 
-## Security
+---
 
-- **Localhost only** — adapter binds to 127.0.0.1 by default
-- **No cloud** — all memory stays local unless you configure cloud sync
-- **No telemetry** — zero data collection
+## Tags
+
+`memory` `persistent-memory` `agent-tools` `automation` `workflow` `productivity`
+
+---
 
 ## License
 
